@@ -774,27 +774,34 @@ html, body {
 @media (max-width: 768px) {
   .sales-layout {
     grid-template-columns: 1fr;
-    grid-template-rows: 1fr auto;
-    height: auto;
-    min-height: calc(100vh - 54px);
+    grid-template-rows: 50vh 1fr;
+    height: calc(100vh - 54px);
+    overflow: hidden;
   }
-  .products-panel { 
-    height: 50vh; 
+  .products-panel {
+    height: 100%;
     padding: 0.5rem;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
   }
-  .cart-panel { height: auto; }
+  .cart-panel { height: 100%; overflow: hidden; }
+  .cart-items { flex: 1; overflow-y: auto; }
   .product-grid { 
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
     gap: 0.5rem;
   }
-  .topbar { gap: 0.75rem; }
+  .topbar { gap: 0.5rem; padding: 0 0.75rem; }
   .topbar-nav { gap: 0.25rem; }
   .nav-btn { 
     padding: 0.4rem 0.75rem; 
     font-size: 0.8rem; 
   }
-  .brand-sub { display: none; }
-  .brand-name { font-size: 0.9rem; }
+  .brand-sub, .topbar-time { display: none; }
+  .brand-name { font-size: 0.85rem; }
+  .topbar-brand { gap: 0.25rem; }
+
+  .page-inner { padding: 0.75rem; }
+  .report-cards { gap: 0.5rem; }
 
   .cart-item { padding: 0.75rem 0.5rem; }
   .ci-price-edit { width: 75px; }
