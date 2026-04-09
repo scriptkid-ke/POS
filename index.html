@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HardwarePos Kenya</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<!-- ===== TOP NAV ===== -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <span class="brand-icon">⚙</span>
+    <span class="brand-name">HardwarePOS</span>
+    <span class="brand-sub">Nairobi</span>
+  </div>
+  <nav class="topbar-nav">
+    <button class="nav-btn active" data-page="sales">🛒 Sales</button>
+    <button class="nav-btn" data-page="inventory">📦 Inventory</button>
+    <button class="nav-btn" data-page="customers">👤 Customers</button>
+    <button class="nav-btn" data-page="reports">📊 Reports</button>
+  </nav>
+  <div class="topbar-time" id="clock">--:--</div>
+</header>
+
+<!-- ===== PAGES WRAPPER ===== -->
+<main class="pages">
+
+  <!-- ========== SALES PAGE ========== -->
+  <section class="page active" id="page-sales">
+    <div class="sales-layout">
+
+      <!-- LEFT: Product Browser -->
+      <div class="products-panel">
+        <div class="panel-header">
+          <input type="text" id="product-search" class="search-input" placeholder="Search product or variant (e.g. D12, cement)…" autocomplete="off" />
+        </div>
+
+        <!-- Category Quick Filters -->
+        <div class="category-pills" id="category-pills">
+          <button class="pill active" data-cat="all">All</button>
+          <button class="pill" data-cat="Steel">Steel</button>
+          <button class="pill" data-cat="Cement">Cement</button>
+          <button class="pill" data-cat="Pipes">Pipes</button>
+          <button class="pill" data-cat="Other">Other</button>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="product-grid" id="product-grid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- RIGHT: Cart -->
+      <div class="cart-panel">
+        <div class="cart-header">
+          <span class="cart-title">Cart</span>
+          <button class="btn-ghost btn-sm" id="clear-cart-btn">Clear</button>
+        </div>
+
+        <!-- Customer Row -->
+        <div class="customer-row">
+          <input type="text" id="cart-customer-name" placeholder="Customer name (optional)" class="input-sm" />
+          <input type="text" id="cart-customer-phone" placeholder="Phone" class="input-sm" />
+        </div>
+
+        <!-- Cart Items -->
+        <div class="cart-items" id="cart-items">
+          <div class="cart-empty" id="cart-empty">No items yet. Search and add products.</div>
+        </div>
+
+        <!-- Totals -->
+        <div class="cart-totals">
+          <div class="totals-row">
+            <span>Subtotal</span>
+            <span id="subtotal">KSh 0</span>
+          </div>
+          <div class="totals-row discount-row">
+            <span>Discount</span>
+            <div class="discount-input-wrap">
+              <input type="number" id="discount-input" min="0" value="0" class="discount-input" title="Discount amount" placeholder="0" />
+              <select id="discount-type" class="discount-type" title="Discount type">
+                <option value="fixed">KSh</option>
+                <option value="percent">%</option>
+              </select>
+            </div>
+          </div>
+          <div class="totals-row total-row">
+            <span>TOTAL</span>
+            <span id="grand-total">KSh 0</span>
+          </div>
+        </div>
+
+        <!-- Payment Buttons -->
+        <div class="payment-buttons">
+          <button class="pay-btn pay-cash" id="pay-cash-btn">💵 Cash</button>
+          <button class="pay-btn pay-mpesa" id="pay-mpesa-btn">📱 M-Pesa</button>
+          <button class="pay-btn pay-credit" id="pay-credit-btn">📋 Credit</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== INVENTORY PAGE ========== -->
+  <section class="page" id="page-inventory">
+    <div class="page-inner">
+      <div class="page-toolbar">
+        <h2 class="page-title">Inventory</h2>
+        <button class="btn-primary" id="add-product-btn">+ Add Product</button>
+      </div>
+
+      <!-- Low stock alert -->
+      <div class="alert-box" id="low-stock-alert" style="display:none"></div>
+
+      <div class="table-wrap">
+        <table class="data-table" id="inventory-table">
+          <thead>
+            <tr>
+              <th>Name</th><th>Variant</th><th>Category</th><th>Unit</th>
+              <th>Buy Price</th><th>Sell Price</th><th>Stock</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== CUSTOMERS PAGE ========== -->
+  <section class="page" id="page-customers">
+    <div class="page-inner">
+      <div class="page-toolbar">
+        <h2 class="page-title">Customers & Credit</h2>
+        <button class="btn-primary" id="add-customer-btn">+ Add Customer</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="customers-table">
+          <thead>
+            <tr>
+              <th>Name</th><th>Phone</th><th>Total Debt (KSh)</th><th>Last Sale</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="customers-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== REPORTS PAGE ========== -->
+  <section class="page" id="page-reports">
+    <div class="page-inner">
+      <div class="page-toolbar">
+        <h2 class="page-title">Reports</h2>
+        <input type="date" id="report-date" class="input-sm" title="Select report date" placeholder="YYYY-MM-DD" />
+      </div>
+      <div class="report-cards">
+        <div class="report-card">
+          <div class="rc-label">Sales Today</div>
+          <div class="rc-value" id="rpt-sales-count">0</div>
+        </div>
+        <div class="report-card">
+          <div class="rc-label">Revenue Today</div>
+          <div class="rc-value" id="rpt-revenue">KSh 0</div>
+        </div>
+        <div class="report-card">
+          <div class="rc-label">Est. Profit Today</div>
+          <div class="rc-value" id="rpt-profit">KSh 0</div>
+        </div>
+        <div class="report-card">
+          <div class="rc-label">Total Outstanding</div>
+          <div class="rc-value" id="rpt-credit">KSh 0</div>
+        </div>
+      </div>
+      <h3 class="section-label">Sales Log</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Time</th><th>Customer</th><th>Items</th><th>Total</th><th>Method</th></tr>
+          </thead>
+          <tbody id="sales-log-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Product Modal -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="product-modal-title">Add Product</span>
+      <button class="modal-close" data-close="product-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pm-id" />
+      <div class="form-row">
+        <label>Name</label>
+        <input type="text" id="pm-name" placeholder="e.g. Steel" />
+      </div>
+      <div class="form-row">
+        <label>Variant</label>
+        <input type="text" id="pm-variant" placeholder="e.g. D12, 1 inch" />
+      </div>
+      <div class="form-row">
+        <label>Category</label>
+        <select id="pm-category" title="Product Category">
+          <option>Steel</option><option>Cement</option><option>Pipes</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Unit</label>
+        <select id="pm-unit" title="Product Unit">
+          <option value="piece">Piece</option>
+          <option value="bag">Bag</option>
+          <option value="meter">Meter</option>
+          <option value="length">Length</option>
+          <option value="kg">Kg</option>
+          <option value="litre">Litre</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Buying Price (KSh)</label>
+        <input type="number" id="pm-buy-price" min="0" placeholder="0" />
+      </div>
+      <div class="form-row">
+        <label>Selling Price (KSh)</label>
+        <input type="number" id="pm-sell-price" min="0" placeholder="0" />
+      </div>
+      <div class="form-row">
+        <label>Stock Quantity</label>
+        <input type="number" id="pm-stock" min="0" step="0.1" placeholder="0" />
+      </div>
+      <div class="form-row">
+        <label>Low Stock Alert At</label>
+        <input type="number" id="pm-low-stock" min="0" placeholder="5" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" data-close="product-modal">Cancel</button>
+      <button class="btn-primary" id="pm-save-btn">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- Customer Modal -->
+<div class="modal-overlay" id="customer-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="customer-modal-title">Add Customer</span>
+      <button class="modal-close" data-close="customer-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cm-id" />
+      <div class="form-row">
+        <label>Name</label>
+        <input type="text" id="cm-name" placeholder="Full name" />
+      </div>
+      <div class="form-row">
+        <label>Phone</label>
+        <input type="text" id="cm-phone" placeholder="07xxxxxxxx" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" data-close="customer-modal">Cancel</button>
+      <button class="btn-primary" id="cm-save-btn">Save Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Customer Debt Modal -->
+<div class="modal-overlay" id="debt-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="debt-modal-title">Credit Ledger</span>
+      <button class="modal-close" data-close="debt-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="debt-summary" style="margin-bottom:1rem;"></div>
+      <div class="table-wrap" style="max-height:280px;overflow-y:auto;">
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Items</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+          <tbody id="debt-log-body"></tbody>
+        </table>
+      </div>
+      <div class="form-row" style="margin-top:1rem;">
+        <label>Record Payment (KSh)</label>
+        <input type="number" id="debt-payment-amount" min="0" placeholder="0" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" data-close="debt-modal">Close</button>
+      <button class="btn-primary" id="debt-pay-btn">Record Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal-overlay" id="receipt-modal">
+  <div class="modal receipt-modal">
+    <div class="modal-header">
+      <span>Receipt</span>
+      <button class="modal-close" data-close="receipt-modal">✕</button>
+    </div>
+    <div class="modal-body" id="receipt-content">
+      <!-- Populated by JS -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" data-close="receipt-modal">Close</button>
+      <button class="btn-primary" onclick="window.print()">🖨 Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cash Payment Modal -->
+<div class="modal-overlay" id="cash-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span>Cash Payment</span>
+      <button class="modal-close" data-close="cash-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="totals-row total-row" style="margin-bottom:1rem;">
+        <span>Amount Due</span><span id="cash-due">KSh 0</span>
+      </div>
+      <div class="form-row">
+        <label>Cash Received (KSh)</label>
+        <input type="number" id="cash-received" min="0" placeholder="0" />
+      </div>
+      <div class="totals-row" id="change-row" style="margin-top:0.5rem;font-size:1.1rem;font-weight:600;">
+        <span>Change</span><span id="cash-change">KSh 0</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" data-close="cash-modal">Cancel</button>
+      <button class="btn-primary" id="confirm-cash-btn">Confirm Sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- M-Pesa Modal -->
+<div class="modal-overlay" id="mpesa-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span>M-Pesa Payment</span>
+      <button class="modal-close" data-close="mpesa-modal">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center;">
+      <div class="mpesa-logo">M-PESA</div>
+      <div class="mpesa-amount" id="mpesa-amount-display">KSh 0</div>
+      <p style="color:#666;font-size:0.85rem;">Ask customer to send to till/paybill. Enter M-Pesa reference below.</p>
+      <div class="form-row">
+        <label>M-Pesa Code (optional)</label>
+        <input type="text" id="mpesa-code" placeholder="e.g. QHG7TR8X2" style="text-transform:uppercase;" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" data-close="mpesa-modal">Cancel</button>
+      <button class="btn-primary" id="confirm-mpesa-btn">Confirm Payment</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
