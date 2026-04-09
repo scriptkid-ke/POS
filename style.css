@@ -62,6 +62,7 @@ html, body {
   position: sticky;
   top: 0;
   z-index: 100;
+  overflow: hidden;
   border-bottom: 3px solid var(--orange);
 }
 
@@ -90,6 +91,11 @@ html, body {
   display: flex;
   gap: 0.25rem;
   flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nav-btn {
@@ -104,8 +110,10 @@ html, body {
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .nav-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.topbar-nav::-webkit-scrollbar { display: none; }
 .nav-btn.active {
   background: var(--orange);
   color: #fff;
@@ -446,6 +454,7 @@ html, body {
   border-radius: var(--radius);
   font-size: 0.82rem;
   font-weight: 600;
+  min-height: 48px;
   cursor: pointer;
   transition: all 0.15s;
   font-family: var(--font-body);
@@ -769,10 +778,46 @@ html, body {
     height: auto;
     min-height: calc(100vh - 54px);
   }
-  .products-panel { height: 55vh; }
+  .products-panel { 
+    height: 50vh; 
+    padding: 0.5rem;
+  }
   .cart-panel { height: auto; }
-  .product-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
-  .topbar-nav { gap: 0; }
-  .nav-btn { padding: 0.4rem 0.6rem; font-size: 0.75rem; }
+  .product-grid { 
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+    gap: 0.5rem;
+  }
+  .topbar { gap: 0.75rem; }
+  .topbar-nav { gap: 0.25rem; }
+  .nav-btn { 
+    padding: 0.4rem 0.75rem; 
+    font-size: 0.8rem; 
+  }
   .brand-sub { display: none; }
+  .brand-name { font-size: 0.9rem; }
+
+  .cart-item { padding: 0.75rem 0.5rem; }
+  .ci-price-edit { width: 75px; }
+  .qty-btn { width: 32px; height: 32px; } /* Larger touch target */
+
+  .payment-buttons {
+    grid-template-columns: 1fr; /* Stack buttons on very small screens */
+  }
+
+  .table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 700px; /* Ensures table remains readable without squishing columns */
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar { padding: 0 0.5rem; gap: 0.5rem; }
+  .product-grid { grid-template-columns: 1fr 1fr; }
+  .report-cards { grid-template-columns: 1fr 1fr; }
+  .modal { width: 100%; height: 100%; border-radius: 0; max-height: 100%; }
 }
