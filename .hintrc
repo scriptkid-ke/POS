@@ -5,6 +5,7 @@
   "hints": {
     "no-inline-styles": "off",
     "apple-touch-icons": "off",
-    "manifest-file-extension": "off"
+    "manifest-file-extension": "off",
+    "compat-api/css": "off"
   }
 }
