@@ -36,19 +36,50 @@ function fmtTime(ts) {
 }
 
 /* =====================
-   LOCAL STORAGE LAYER
-   (Easy to swap for API calls later)
+   DATABASE LAYER (IndexedDB)
    ===================== */
 
-// Load array from localStorage, fallback to default
-function load(key, def = []) {
-  try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; }
-}
+const DB_NAME = 'HardwarePOS_DB';
+const DB_VERSION = 1;
 
-// Save array to localStorage
-function save(key, val) {
-  localStorage.setItem(key, JSON.stringify(val));
-}
+const db = {
+  open() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = (e) => {
+        const database = e.target.result;
+        // Create object stores for our collections
+        if (!database.objectStoreNames.contains('products')) database.createObjectStore('products', { keyPath: 'id' });
+        if (!database.objectStoreNames.contains('sales')) database.createObjectStore('sales', { keyPath: 'id' });
+        if (!database.objectStoreNames.contains('customers')) database.createObjectStore('customers', { keyPath: 'id' });
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  async getAll(storeName) {
+    const database = await this.open();
+    return new Promise((resolve) => {
+      const tx = database.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+    });
+  },
+
+  async saveAll(storeName, data) {
+    const database = await this.open();
+    return new Promise((resolve, reject) => {
+      const tx = database.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
+      store.clear(); // Clear existing to sync with memory array
+      data.forEach(item => store.add(item));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+};
 
 /* =====================
    SEED DATA
@@ -74,16 +105,10 @@ const SEED_PRODUCTS = [
    APP STATE
    ===================== */
 
-let products  = load('hw_products');
-let sales     = load('hw_sales');
-let customers = load('hw_customers');
+let products  = [];
+let sales     = [];
+let customers = [];
 let cart      = []; // NOT persisted (session only)
-
-// Seed products on first load
-if (products.length === 0) {
-  products = SEED_PRODUCTS;
-  save('hw_products', products);
-}
 
 /* =====================
    CLOCK
@@ -334,11 +359,11 @@ document.getElementById('cash-received').addEventListener('input', e => {
   document.getElementById('cash-change').style.color = change < 0 ? 'var(--red)' : 'var(--green)';
 });
 
-document.getElementById('confirm-cash-btn').addEventListener('click', () => {
+document.getElementById('confirm-cash-btn').addEventListener('click', async () => {
   const { total } = getGrandTotal();
   const received   = parseFloat(document.getElementById('cash-received').value) || 0;
   if (received < total) { alert('Cash received is less than amount due.'); return; }
-  completeSale('Cash', { received, change: received - total });
+  await completeSale('Cash', { received, change: received - total });
   closeModal('cash-modal');
 });
 
@@ -351,14 +376,14 @@ document.getElementById('pay-mpesa-btn').addEventListener('click', () => {
   openModal('mpesa-modal');
 });
 
-document.getElementById('confirm-mpesa-btn').addEventListener('click', () => {
+document.getElementById('confirm-mpesa-btn').addEventListener('click', async () => {
   const ref = document.getElementById('mpesa-code').value.trim() || 'N/A';
-  completeSale('M-Pesa', { mpesaCode: ref });
+  await completeSale('M-Pesa', { mpesaCode: ref });
   closeModal('mpesa-modal');
 });
 
 // --- Credit ---
-document.getElementById('pay-credit-btn').addEventListener('click', () => {
+document.getElementById('pay-credit-btn').addEventListener('click', async () => {
   if (!validateCart()) return;
   const customerName = document.getElementById('cart-customer-name').value.trim();
   if (!customerName) {
@@ -367,7 +392,7 @@ document.getElementById('pay-credit-btn').addEventListener('click', () => {
     return;
   }
   if (!confirm(`Record credit sale for "${customerName}"?`)) return;
-  completeSale('Credit', {});
+  await completeSale('Credit', {});
 });
 
 /* =====================
@@ -375,7 +400,7 @@ document.getElementById('pay-credit-btn').addEventListener('click', () => {
    Records sale, deducts stock, shows receipt
    ===================== */
 
-function completeSale(method, paymentDetails) {
+async function completeSale(method, paymentDetails) {
   const { subtotal, discount, total } = getGrandTotal();
   const customerName  = document.getElementById('cart-customer-name').value.trim();
   const customerPhone = document.getElementById('cart-customer-phone').value.trim();
@@ -402,16 +427,16 @@ function completeSale(method, paymentDetails) {
       product.stock = Math.max(0, product.stock - cartItem.qty);
     }
   });
-  save('hw_products', products);
+  await db.saveAll('products', products);
 
   // If credit, update customer debt
   if (method === 'Credit') {
-    updateCustomerCredit(customerName, customerPhone, sale);
+    await updateCustomerCredit(customerName, customerPhone, sale);
   }
 
   // Save sale
   sales.push(sale);
-  save('hw_sales', sales);
+  await db.saveAll('sales', sales);
 
   // Reset cart & fields
   cart = [];
@@ -492,7 +517,7 @@ function showReceipt(sale) {
    CUSTOMER CREDIT
    ===================== */
 
-function updateCustomerCredit(name, phone, sale) {
+async function updateCustomerCredit(name, phone, sale) {
   // Find existing customer or create new one
   let customer = customers.find(c =>
     c.name.toLowerCase() === name.toLowerCase() ||
@@ -524,7 +549,7 @@ function updateCustomerCredit(name, phone, sale) {
       creditLog: [creditEntry],
     });
   }
-  save('hw_customers', customers);
+  await db.saveAll('customers', customers);
 }
 
 /* =====================
@@ -598,7 +623,7 @@ function editProduct(id) {
 }
 
 // Save product (add or edit)
-document.getElementById('pm-save-btn').addEventListener('click', () => {
+document.getElementById('pm-save-btn').addEventListener('click', async () => {
   const id       = document.getElementById('pm-id').value;
   const name     = document.getElementById('pm-name').value.trim();
   const variant  = document.getElementById('pm-variant').value.trim();
@@ -620,17 +645,17 @@ document.getElementById('pm-save-btn').addEventListener('click', () => {
     products.push({ id: uid(), name, variant, category, unit, buyPrice, sellPrice, stock, lowStockAt });
   }
 
-  save('hw_products', products);
+  await db.saveAll('products', products);
   closeModal('product-modal');
   renderInventory();
   renderProductGrid(); // refresh sales grid too
 });
 
 // Delete product
-function deleteProduct(id) {
+async function deleteProduct(id) {
   if (!confirm('Delete this product? This cannot be undone.')) return;
   products = products.filter(p => p.id !== id);
-  save('hw_products', products);
+  await db.saveAll('products', products);
   renderInventory();
   renderProductGrid();
 }
@@ -683,7 +708,7 @@ function editCustomer(id) {
 }
 
 // Save customer
-document.getElementById('cm-save-btn').addEventListener('click', () => {
+document.getElementById('cm-save-btn').addEventListener('click', async () => {
   const id    = document.getElementById('cm-id').value;
   const name  = document.getElementById('cm-name').value.trim();
   const phone = document.getElementById('cm-phone').value.trim();
@@ -696,16 +721,16 @@ document.getElementById('cm-save-btn').addEventListener('click', () => {
     customers.push({ id: uid(), name, phone, totalDebt: 0, lastSale: null, creditLog: [] });
   }
 
-  save('hw_customers', customers);
+  await db.saveAll('customers', customers);
   closeModal('customer-modal');
   renderCustomers();
 });
 
 // Delete customer
-function deleteCustomer(id) {
+async function deleteCustomer(id) {
   if (!confirm('Delete this customer? All their credit records will be lost.')) return;
   customers = customers.filter(c => c.id !== id);
-  save('hw_customers', customers);
+  await db.saveAll('customers', customers);
   renderCustomers();
 }
 
@@ -747,7 +772,7 @@ function viewDebt(id) {
 }
 
 // Record a credit payment
-document.getElementById('debt-pay-btn').addEventListener('click', () => {
+document.getElementById('debt-pay-btn').addEventListener('click', async () => {
   if (!activeDebtCustomerId) return;
   const amount = parseFloat(document.getElementById('debt-payment-amount').value) || 0;
   if (amount <= 0) { alert('Enter a valid payment amount.'); return; }
@@ -770,7 +795,7 @@ document.getElementById('debt-pay-btn').addEventListener('click', () => {
   // remaining > 0 means overpayment — credit is fully cleared
   if (remaining > 0) customer.totalDebt = 0;
 
-  save('hw_customers', customers);
+  await db.saveAll('customers', customers);
   closeModal('debt-modal');
   renderCustomers();
   alert(`Payment of ${fmt(amount)} recorded for ${customer.name}.`);
@@ -874,11 +899,20 @@ if ("serviceWorker" in navigator) {
    INIT
    ===================== */
 
-function init() {
+async function init() {
+  // Load data from Database
+  products = await db.getAll('products');
+  sales = await db.getAll('sales');
+  customers = await db.getAll('customers');
+
+  // Seed products if database is empty
+  if (products.length === 0) {
+    products = SEED_PRODUCTS;
+    await db.saveAll('products', products);
+  }
+
   startClock();
   renderProductGrid();
-  // Reports date picker default
-  document.getElementById('report-date').value = today();
 }
 
-init();
+init().catch(err => console.error("Database initialization failed", err));

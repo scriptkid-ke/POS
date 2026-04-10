@@ -9,25 +9,25 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "https://via.placeholder.com/192",
+      "src": "./image/download.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://via.placeholder.com/192",
+      "src": "./image/download.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "https://via.placeholder.com/512",
+      "src": "./image/download.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://via.placeholder.com/512",
+      "src": "./image/download.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

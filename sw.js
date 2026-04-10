@@ -1,11 +1,12 @@
-const CACHE_NAME = "pos-cache-v2";
+const CACHE_NAME = "pos-cache-v4";
 
 const urlsToCache = [
   "./",
   "./index.html",
   "./style.css",
   "./script.js",
-  "./manifest.json"
+  "./manifest.json",
+  "./image/download.png"
 ];
 
 self.addEventListener("install", (event) => {
